@@ -1,5 +1,7 @@
 # distribution-log-collector
 
+Currently distribute service is popular, but will introduce one problem which is hard to locate log message under different services/machines. This project is aim to solve this problem, centralized log messsages between different services/machines. </br>
+
 Logback already support send log message via JMS/Socket/SMTP.</br>
 However JMS is a bit heavy, and socket is using oio.</br>
 
