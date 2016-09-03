@@ -17,10 +17,19 @@ public class Client {
 
         final AtomicInteger counter = new AtomicInteger(1);
         executorService.scheduleAtFixedRate(() -> LOGGER.info("Message, {}", counter.getAndIncrement()),
-                100, 1000, TimeUnit.MILLISECONDS);
+                100, 100, TimeUnit.MILLISECONDS);
 
         executorService.scheduleAtFixedRate(() -> LOGGER.info("Message, {}", counter.getAndIncrement()),
-                600, 1000, TimeUnit.MILLISECONDS);
+                200, 100, TimeUnit.MILLISECONDS);
+
+        executorService.scheduleAtFixedRate(() -> LOGGER.info("Message, {}", counter.getAndIncrement()),
+                200, 100, TimeUnit.MILLISECONDS);
+
+        executorService.scheduleAtFixedRate(() -> LOGGER.info("Message, {}", counter.getAndIncrement()),
+                200, 100, TimeUnit.MILLISECONDS);
+
+        executorService.scheduleAtFixedRate(() -> LOGGER.info("Message, {}", counter.getAndIncrement()),
+                200, 100, TimeUnit.MILLISECONDS);
     }
 
 }

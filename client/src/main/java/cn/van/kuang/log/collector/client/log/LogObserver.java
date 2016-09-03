@@ -4,11 +4,23 @@ import ch.qos.logback.classic.spi.LoggingEvent;
 import cn.van.kuang.log.collector.client.netty.NettyClient;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public enum LogObserver {
 
     INSTANCE;
+
+    private static final int SEND_MSG_INTERVAL_IN_MIL_SEC = 1000;
+    private static final int BUCKET_SIZE = 30;
+
+    private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+    private ConcurrentLinkedQueue<String> messages = new ConcurrentLinkedQueue<>();
 
     private AtomicBoolean isInitialised = new AtomicBoolean(false);
 
@@ -24,7 +36,8 @@ public enum LogObserver {
             return;
         }
 
-        channelContext.writeAndFlush(((LoggingEvent) event).getFormattedMessage());
+        String formattedMessage = ((LoggingEvent) event).getFormattedMessage();
+        messages.offer(formattedMessage);
     }
 
     public void init() {
@@ -47,10 +60,56 @@ public enum LogObserver {
             }.start();
             channelContext = nettyClient.getChannelContext();
             isInitialised.set(true);
-            System.out.println("Initialised");
+            System.out.println("Initialised Netty Client");
+
+            dispatchSender();
+            System.out.println("Dispatched sender thread");
         } catch (Throwable throwable) {
             System.out.println("Fail to connect Netty server");
             throwable.printStackTrace();
+        }
+    }
+
+    private void dispatchSender() {
+        executorService.scheduleAtFixedRate(this::doCallSend, 0, SEND_MSG_INTERVAL_IN_MIL_SEC, TimeUnit.MILLISECONDS);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                System.out.println("Trigger shutdown hook");
+                executorService.shutdown();
+                doCallSend();
+                System.out.println("Shutdown hook end");
+            }
+        });
+    }
+
+    private void doCallSend() {
+        List<String> msgToSend = new ArrayList<>(BUCKET_SIZE);
+
+        String message;
+        while ((message = messages.poll()) != null) {
+            msgToSend.add(message);
+
+            if (msgToSend.size() == BUCKET_SIZE) {
+                List<String> tmpMessages = new ArrayList<>(msgToSend);
+                try {
+                    channelContext.writeAndFlush(tmpMessages).sync();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                msgToSend.clear();
+            }
+        }
+
+        if (!msgToSend.isEmpty()) {
+            List<String> tmpMessages = new ArrayList<>(msgToSend);
+            try {
+                channelContext.writeAndFlush(tmpMessages).sync();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            msgToSend.clear();
         }
     }
 
