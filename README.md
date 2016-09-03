@@ -2,6 +2,7 @@
 
 Currently distribute service is popular, but will introduce one problem which is hard to locate log message under different services/machines. This project is aim to solve this problem, centralized log messsages between different services/machines. </br>
 
+# Solution 1: Base on logback
 Logback already support send log message via JMS/Socket/SMTP.</br>
 However JMS is a bit heavy, and socket is using oio.</br>
 
@@ -15,3 +16,6 @@ Netty base on nio with high performance and easy to use, obvious Netty is a good
 1. Received message from clients</br>
 2. Persistent log message with well format</br>
 3. Provide service api to GUI, like REST or dynamic streaming</br>
+
+# Solution 2: Monitoring log
+Create a individual service to monitoring the log paths, and send via Netty to the server side.
