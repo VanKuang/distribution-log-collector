@@ -58,6 +58,7 @@ public enum LogObserver {
                     }
                 }
             }.start();
+
             channelContext = nettyClient.getChannelContext();
             isInitialised.set(true);
             System.out.println("Initialised Netty Client");
@@ -71,20 +72,27 @@ public enum LogObserver {
     }
 
     private void dispatchSender() {
-        executorService.scheduleAtFixedRate(this::doCallSend, 0, SEND_MSG_INTERVAL_IN_MIL_SEC, TimeUnit.MILLISECONDS);
+        executorService.scheduleAtFixedRate(
+                () -> doCallSend(false),
+                0,
+                SEND_MSG_INTERVAL_IN_MIL_SEC,
+                TimeUnit.MILLISECONDS);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
                 System.out.println("Trigger shutdown hook");
+
                 executorService.shutdown();
-                doCallSend();
+
+                doCallSend(true);
+
                 System.out.println("Shutdown hook end");
             }
         });
     }
 
-    private void doCallSend() {
+    private void doCallSend(boolean sync) {
         List<String> msgToSend = new ArrayList<>(BUCKET_SIZE);
 
         String message;
@@ -92,25 +100,39 @@ public enum LogObserver {
             msgToSend.add(message);
 
             if (msgToSend.size() == BUCKET_SIZE) {
-                List<String> tmpMessages = new ArrayList<>(msgToSend);
-                try {
-                    channelContext.writeAndFlush(tmpMessages).sync();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                doSend(msgToSend, sync);
                 msgToSend.clear();
             }
         }
 
-        if (!msgToSend.isEmpty()) {
-            List<String> tmpMessages = new ArrayList<>(msgToSend);
-            try {
-                channelContext.writeAndFlush(tmpMessages).sync();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            msgToSend.clear();
+        if (msgToSend.isEmpty()) {
+            return;
         }
+
+        doSend(msgToSend, sync);
+        msgToSend.clear();
+    }
+
+    private void doSend(List<String> messages, boolean sync) {
+        if (sync) {
+            syncSend(messages);
+        } else {
+            asyncSend(messages);
+        }
+    }
+
+    private void syncSend(List<String> messages) {
+        List<String> tmpMessages = new ArrayList<>(messages);
+        try {
+            channelContext.writeAndFlush(tmpMessages).sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void asyncSend(List<String> messages) {
+        List<String> tmpMessages = new ArrayList<>(messages);
+        channelContext.writeAndFlush(tmpMessages);
     }
 
 }
