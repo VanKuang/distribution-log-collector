@@ -1,7 +1,5 @@
-package cn.van.kuang.log.collector.client.log;
+package cn.van.kuang.log.collector.common;
 
-import ch.qos.logback.classic.spi.LoggingEvent;
-import cn.van.kuang.log.collector.client.netty.NettyClient;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.ArrayList;
@@ -27,7 +25,7 @@ public enum LogObserver {
     private NettyClient nettyClient;
     private ChannelHandlerContext channelContext;
 
-    public void onMessage(Object event) {
+    public void onMessage(String message) {
         if (!isInitialised.get()) {
             return;
         }
@@ -36,8 +34,7 @@ public enum LogObserver {
             return;
         }
 
-        String formattedMessage = ((LoggingEvent) event).getFormattedMessage();
-        messages.offer(formattedMessage);
+        messages.offer(message);
     }
 
     public void init() {

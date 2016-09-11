@@ -1,6 +1,8 @@
 package cn.van.kuang.log.collector.client.log;
 
+import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
+import cn.van.kuang.log.collector.common.LogObserver;
 
 public class NettyLogAppender<E> extends UnsynchronizedAppenderBase<E> {
 
@@ -13,6 +15,6 @@ public class NettyLogAppender<E> extends UnsynchronizedAppenderBase<E> {
 
     @Override
     protected void append(E eventObject) {
-        logObserver.onMessage(eventObject);
+        logObserver.onMessage(((LoggingEvent) eventObject).getFormattedMessage());
     }
 }

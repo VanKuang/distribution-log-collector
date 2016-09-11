@@ -1,4 +1,4 @@
-package cn.van.kuang.log.collector.client.netty;
+package cn.van.kuang.log.collector.common;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
